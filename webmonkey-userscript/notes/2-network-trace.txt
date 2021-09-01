@@ -1,0 +1,35 @@
+---------------------------------------------------------
+// https://mhdtvworld.xyz/live/cnn/
+
+var channel_el   = document.querySelector('.dooplay_player_option[data-post][data-type][data-nume]')
+var channel_data = [
+  channel_el.getAttribute('data-post'),
+  channel_el.getAttribute('data-type'),
+  channel_el.getAttribute('data-nume')
+]
+var api_url = 'https://mhdtvworld.xyz/wp-json/dooplayer/v2/' + channel_data.join('/')
+  // https://mhdtvworld.xyz/wp-json/dooplayer/v2/7429/movie/1
+  // {"embed_url":"https:\/\/mhdtvworld.xyz\/jwplayer\/?source=https%3A%2F%2Fcnn-cnninternational-1-de.samsung.wurl.com%2Fmanifest%2Fplaylist.m3u8&id=7429&type=mp4","type":"mp4"}
+
+fetch(api_url).then(result => result.json()).then(data => data.embed_url).then(url => url.replace(/^.*source=([^&]+).*$/, '$1')).then(url => decodeURIComponent(url)).then(url => window.alert(url))
+  // https://cnn-cnninternational-1-de.samsung.wurl.com/manifest/playlist.m3u8
+
+---------------------------------------------------------
+// https://mhdtvworld.xyz/live/syfy/
+
+var channel_el   = document.querySelector('.dooplay_player_option[data-post][data-type][data-nume]')
+var channel_data = [
+  channel_el.getAttribute('data-post'),
+  channel_el.getAttribute('data-type'),
+  channel_el.getAttribute('data-nume')
+]
+var api_url = 'https://mhdtvworld.xyz/wp-json/dooplayer/v2/' + channel_data.join('/')
+  // https://mhdtvworld.xyz/wp-json/dooplayer/v2/8113/movie/1
+  // {"embed_url":"\/delta\/planet\/play.php?c=429852336","type":"iframe"}
+  // => resolves to: https://mhdtvworld.xyz/delta/planet/play.php?c=429852336
+
+fetch(api_url).then(result => result.json()).then(data => data.embed_url).then(url => fetch(url)).then(result => result.text()).then(html => html.replace(/[\r\n\t]+/g,' ').replace(/^.*['"]([^'"]+m3u8)['"].*$/,'$1')).then(url => window.alert(url))
+  // /delta/planet/max.php?id=429852336&e=.m3u8
+  // => resolves to: https://mhdtvworld.xyz/delta/planet/max.php?id=429852336&e=.m3u8
+
+---------------------------------------------------------
