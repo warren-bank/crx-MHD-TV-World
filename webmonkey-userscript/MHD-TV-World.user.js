@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MHD TV World
 // @description  Improve site usability. Watch videos in external player.
-// @version      1.0.0
+// @version      1.0.1
 // @match        *://mhdtvworld.xyz/*
 // @match        *://*.mhdtvworld.xyz/*
 // @icon         https://mhdtvworld.xyz/wp-content/uploads/2020/01/Trans-1.png
@@ -19,13 +19,20 @@
 // ----------------------------------------------------------------------------- constants
 
 var user_options = {
-  "redirect_to_webcast_reloaded": true,
-  "force_http":                   true,
-  "force_https":                  false,
-
-  "timeout_ms": {
-    "channels_index":             0,
-    "live_videostream":           0
+  "common": {
+    "emulate_webmonkey":            false,
+    "timeout_ms": {
+      "channels_index":             0,
+      "live_videostream":           0
+    }
+  },
+  "webmonkey": {
+    "post_intent_redirect_to_url":  "about:blank"
+  },
+  "greasemonkey": {
+    "redirect_to_webcast_reloaded": true,
+    "force_http":                   true,
+    "force_https":                  false
   }
 }
 
@@ -109,8 +116,8 @@ var make_element = function(elementName, innerContent, isText) {
 // ----------------------------------------------------------------------------- URL links to tools on Webcast Reloaded website
 
 var get_webcast_reloaded_url = function(video_url, vtt_url, referer_url, force_http, force_https) {
-  force_http  = (typeof force_http  === 'boolean') ? force_http  : user_options.force_http
-  force_https = (typeof force_https === 'boolean') ? force_https : user_options.force_https
+  force_http  = (typeof force_http  === 'boolean') ? force_http  : user_options.greasemonkey.force_http
+  force_https = (typeof force_https === 'boolean') ? force_https : user_options.greasemonkey.force_https
 
   var encoded_video_url, encoded_vtt_url, encoded_referer_url, webcast_reloaded_base, webcast_reloaded_url
 
@@ -143,7 +150,7 @@ var redirect_to_url = function(url) {
 
   if (typeof GM_loadUrl === 'function') {
     if (typeof GM_resolveUrl === 'function')
-      url = GM_resolveUrl(url, unsafeWindow.location.href)
+      url = GM_resolveUrl(url, unsafeWindow.location.href) || url
 
     GM_loadUrl(url, 'Referer', unsafeWindow.location.href)
   }
@@ -155,6 +162,19 @@ var redirect_to_url = function(url) {
       unsafeWindow.window.location = url
     }
   }
+}
+
+var process_webmonkey_post_intent_redirect_to_url = function() {
+  var url = null
+
+  if (typeof user_options.webmonkey.post_intent_redirect_to_url === 'string')
+    url = user_options.webmonkey.post_intent_redirect_to_url
+
+  if (typeof user_options.webmonkey.post_intent_redirect_to_url === 'function')
+    url = user_options.webmonkey.post_intent_redirect_to_url()
+
+  if (typeof url === 'string')
+    redirect_to_url(url)
 }
 
 var process_video_url = function(video_url, video_type, vtt_url, referer_url) {
@@ -181,9 +201,10 @@ var process_video_url = function(video_url, video_type, vtt_url, referer_url) {
     }
 
     GM_startIntent.apply(this, args)
+    process_webmonkey_post_intent_redirect_to_url()
     return true
   }
-  else if (user_options.redirect_to_webcast_reloaded) {
+  else if (user_options.greasemonkey.redirect_to_webcast_reloaded) {
     // running in standard web browser: redirect URL to top-level tool on Webcast Reloaded website
 
     redirect_to_url(get_webcast_reloaded_url(video_url, vtt_url, referer_url))
@@ -343,23 +364,23 @@ var process_channels_index = function() {
 // ----------------------------------------------------------------------------- bootstrap
 
 var init = function() {
-  if (user_options.emulate_webmonkey && (unsafeWindow.window !== unsafeWindow.top)) return
+  if (user_options.common.emulate_webmonkey && (unsafeWindow.window !== unsafeWindow.top)) return
 
   var pathname            = unsafeWindow.location.pathname
   var is_channels_index   = (pathname.indexOf('/channel/') === 0)
   var is_live_videostream = (pathname.indexOf('/live/')    === 0)
 
   if (is_channels_index) {
-    if (user_options.timeout_ms.channels_index > 0)
-      setTimeout(process_channels_index, user_options.timeout_ms.channels_index)
+    if (user_options.common.timeout_ms.channels_index > 0)
+      setTimeout(process_channels_index, user_options.common.timeout_ms.channels_index)
     else
       process_channels_index()
     return
   }
 
   if (is_live_videostream) {
-    if (user_options.timeout_ms.live_videostream > 0)
-      setTimeout(process_live_videostream, user_options.timeout_ms.live_videostream)
+    if (user_options.common.timeout_ms.live_videostream > 0)
+      setTimeout(process_live_videostream, user_options.common.timeout_ms.live_videostream)
     else
       process_live_videostream()
     return
